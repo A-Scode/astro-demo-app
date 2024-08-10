@@ -87,7 +87,7 @@ const AstroPage = () => {
                     astrologer.discountedRate?(
                 <View style={{flexDirection:'row'}}>
                     <Text style={{textDecorationLine:'line-through'}}>{astrologer.rate}</Text>
-                    <Text style={[styles.rate , {color:"#bb0101"}]}>{astrologer.rate}</Text>
+                    <Text style={[styles.rate , {color:"#bb0101"}]}>{astrologer.discountedRate}</Text>
                     </View>
                     ):(
                         <Text style={styles.rate}>{astrologer.rate}</Text>
@@ -109,7 +109,7 @@ const AstroPage = () => {
             </View>
         </View>
         <View style={[styles.cardContainter , {padding:15}]}>
-                <Text>
+                <Text style={{fontSize:16}}>
                     {astrologer.description}
                 </Text>
         </View>
