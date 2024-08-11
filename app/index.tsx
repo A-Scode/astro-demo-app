@@ -1,11 +1,13 @@
 import { View, Text, FlatList, StyleSheet, Button, Pressable, Modal } from 'react-native'
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { Image } from 'expo-image';
 import { Rating } from 'react-native-ratings';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import ReactNativeModal from 'react-native-modal';
+import { Dropdown, MultiSelect } from 'react-native-element-dropdown';
+import Slider from '@react-native-community/slider';
 
 type astrologer = {
     id:number,
@@ -313,19 +315,26 @@ const listPage = () => {
 
     const [filterModalVisible , setFilterModalVisible] = useState(true);
     
+    const [astroList , setAstroList ] = useState<astrologer[]>(astrologers)
+
+    const applyFilters = useCallback((filters:{expertise:string[] , experience:number})=>{
+        console.log(astrologers.filter(astro=>{
+            return filters.expertise.find(exp => astro.expertise.find(astoexp =>astoexp == exp)) && Number(astro.experience.split(' ')[0]) >= filters.experience
+        }))
+        setAstroList( astrologers.filter(astro=>{
+            return filters.expertise.find(exp => astro.expertise.find(astoexp =>astoexp == exp)) && Number(astro.experience.split(' ')[0]) >= filters.experience
+        }))
+        setFilterModalVisible(false)
+    },[astrologers])
 
 
 
   return (
     <View>
-        <CustomHeader />
-        <ReactNativeModal isVisible={filterModalVisible} onBackdropPress={()=>setFilterModalVisible(false)}>
-            <View style={styles.filterModal}>
-                <Text style={styles.name}>Filters</Text>
-            </View>
-        </ReactNativeModal>
+        <CustomHeader openFilter={()=>setFilterModalVisible(true)} />
+        <FilterModal filterModalVisible={filterModalVisible} setFilterModalVisible={setFilterModalVisible} applyFilters={applyFilters} />
       <FlatList
-      data={astrologers}
+      data={astroList}
       renderItem={AstroCard}
       contentContainerStyle={{paddingBottom:120}}
       />
@@ -335,7 +344,6 @@ const listPage = () => {
 
 
 const AstroCard = ({index , item}:{index:number , item:astrologer})=>{
-    console.log(item)
     const blurhash =  '|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[';
     return (
         <Link href={{pathname:'/[id]' , params:{id:item.id , item : JSON.stringify(item)}}} asChild > 
@@ -402,7 +410,64 @@ const AstroCard = ({index , item}:{index:number , item:astrologer})=>{
 }
 
 
-const CustomHeader = (props:any)=>{
+const FilterModal = ({filterModalVisible , setFilterModalVisible ,applyFilters}:{
+    filterModalVisible:boolean,
+    setFilterModalVisible:(prevalue:any)=>void,
+    applyFilters:(filters:{expertise:string[] , experience:number})=>void 
+})=>{
+
+    const [expertise , setExpertise] =  useState<string[]>([]);
+    const [experience , setExperience] =  useState<number>(0);
+
+    const extpertiseList = [
+        {lablel:"Vedic" , value:"Vedic"}, 
+        {lablel:"Numerology" , value:"Numerology"}, 
+        {lablel:"Vastu" , value:"Vastu"}, 
+        {lablel:"Prashana" , value:"Prashana"}, 
+        {lablel:"Nadi" , value:"Nadi"}, 
+        {lablel:"Tarot" , value:"Tarot"}, 
+        {lablel:"Palmistry" , value:"Palmistry"},
+    ];
+    return (
+        <ReactNativeModal isVisible={filterModalVisible} onBackdropPress={()=>setFilterModalVisible(false)}>
+            <View style={styles.filterModal}>
+                <Text style={[styles.name , {fontSize:22  , marginVertical:5}]}>Filters</Text>
+                <View> 
+                    <Text style={styles.label}>Expertise</Text>
+                    <MultiSelect 
+                    data={extpertiseList}
+                    labelField={'lablel'}
+                    valueField={'value'}
+                    value={expertise}
+                    onChange={setExpertise}
+                    style={{backgroundColor:'#f5f5f5',padding:10 , borderRadius:10}}
+                    activeColor='#ffe694'
+                    selectedStyle={{borderRadius:10 , backgroundColor:'#fff5d6'}}
+                    
+                    />
+                </View>
+                <View> 
+                    <Text style={styles.label}>Expreience {experience!==0?`: ${experience}`:null}</Text>
+                    <Slider
+                    thumbTintColor='#ffc400'
+                    minimumTrackTintColor='#ffe07c'
+                    minimumValue={0}
+                    maximumValue={10}
+                    value={experience}
+                    onValueChange={(value)=>setExperience(Math.round(value))}
+                    />
+                </View>
+            <Pressable onPress={()=>applyFilters({experience , expertise})} style={{alignSelf:'flex-end' , padding:20}}>
+                <Text style={{color:'#eeb600'}}>OK</Text>
+            </Pressable>
+            </View>
+        </ReactNativeModal>
+    )
+}
+
+
+
+const CustomHeader = (props:{openFilter:()=>void })=>{
     return (
         <View style={styles.headerContainer}>
             <View style={styles.header}>
@@ -411,7 +476,10 @@ const CustomHeader = (props:any)=>{
                 <Text style={{textAlign:'center' , fontSize:20 , fontWeight:'700'}} ellipsizeMode='tail'>Chat with Astrologer</Text>
             </View>
             <MaterialCommunityIcons name='magnify' color={'black'}  size={35} />
+            <Pressable onPress={props.openFilter}>
             <MaterialCommunityIcons name='filter-outline' color={'black'}  size={35} />
+
+            </Pressable>
 
             </View>
         </View>
@@ -481,9 +549,15 @@ const styles = StyleSheet.create({
         backgroundColor:'white',
         alignSelf:'center',
         borderRadius:20,
-        minWidth:250,
+        minWidth:'90%',
+        maxWidth:600,
         minHeight:300,
-        padding:20
+        padding:20,
+        gap:15,
     },
+    label:{
+        fontSize:15,
+        marginVertical:5,
+    }
 
 })
